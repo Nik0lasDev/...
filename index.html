@@ -151,7 +151,7 @@ function attack(){
 function spawnPolice(){const origin=houseOutside||player;for(let i=0;i<2+Math.floor(alert/3);i++){const a=rand(0,Math.PI*2);police.push({x:clamp(origin.x+Math.cos(a)*rand(300,450),30,WORLD_W-30),y:clamp(origin.y+Math.sin(a)*rand(300,450),30,WORLD_H-30),hp:9,maxHp:9,cd:rand(.5,1.8),r:9,flash:0})}notify('RÁDIO POLICIAL DETECTADO')}
 function checkEvolution(){
  const thresholds=[3,7,12,18,26,36,48,62,80];
- if(player.level<thresholds.length&&killCount>=thresholds[player.level])showEvolution();
+ if(player.level<thresholds.length&&getStats().next.length&&killCount>=thresholds[player.level])showEvolution();
 }
 function showEvolution(){
  const s=getStats();const choices=s.next.map(id=>({id,...evolution[id]}));
@@ -175,7 +175,11 @@ function useAbility(){
  else if(id==='tormentor'||id==='marrow'){for(const h of (currentHouse?houseVictims:humans)){if(h.alive&&dist(h,player)<125){h.alive=false;killCount++;player.essence++;player.hunger=100;addParticles(h.x,h.y,'#9b343c',10)}}if(currentHouse&&houseVictims.every(v=>!v.alive))currentHouse.cleared=true;checkEvolution();player.invuln=2;notify('FRENESI DESTRUTIVO')}
  else if(id==='despair'){for(const h of (currentHouse?houseVictims:humans)){if(dist(h,player)<260){h.fear=10;h.state='panic'}}notify('PÂNICO PSÍQUICO')}
  else if(id==='influence'){alert=10;for(const h of (currentHouse?houseVictims:humans)){if(dist(h,player)<400){h.fear=12;h.state='panic'}}notify('A CIDADE INTEIRA SENTE SUA PRESENÇA')}
- else if(id==='anguish'){for(const h of (currentHouse?houseVictims:humans)){if(dist(h,player)<210){h.alive=false;killCount++;player.essence++;addParticles(h.x,h.y,'#a33b42',10)}}if(currentHouse&&houseVictims.every(v=>!v.alive))currentHouse.cleared=true;checkEvolution();player.invuln=3;notify('OLHAR DO ABISMO')}
+ else if(id==='anguish'){for(const h of (currentHouse?houseVictims:humans)){if(h.alive&&dist(h,player)<210){h.alive=false;killCount++;player.essence++;addParticles(h.x,h.y,'#a33b42',10)}}if(currentHouse&&houseVictims.every(v=>!v.alive))currentHouse.cleared=true;checkEvolution();player.invuln=3;notify('OLHAR DO ABISMO')}
+ else if(id==='warden'||id==='carrionTitan'){player.invuln=id==='carrionTitan'?4:3;for(const h of (currentHouse?houseVictims:humans)){if(h.alive&&dist(h,player)<(id==='carrionTitan'?175:115)){h.alive=false;killCount++;player.essence++;addParticles(h.x,h.y,'#b8a18b',12)}}if(currentHouse&&houseVictims.every(v=>!v.alive))currentHouse.cleared=true;checkEvolution();notify('COLAPSO DE CARAPAÇA')}
+ else if(id==='reaper'||id==='nightSovereign'){const dx=Math.cos(player.facing),dy=Math.sin(player.facing);for(let i=0;i<12;i++){if(currentHouse){player.x=clamp(player.x+dx*16,currentHouse.cx-170,currentHouse.cx+170);player.y=clamp(player.y+dy*16,currentHouse.cy-125,currentHouse.cy+105)}else moveEntity(player,dx*16,dy*16,player.r)}for(const h of (currentHouse?houseVictims:humans)){if(h.alive&&dist(h,player)<65){h.alive=false;killCount++;player.essence++;addParticles(h.x,h.y,'#b94a58',10)}}if(currentHouse&&houseVictims.every(v=>!v.alive))currentHouse.cleared=true;checkEvolution();player.invuln=.8;notify('RASANTE PREDATÓRIO')}
+ else if(id==='siren'||id==='hollowKing'){for(const h of (currentHouse?houseVictims:humans)){if(dist(h,player)<390){h.fear=14;h.state='panic'}}player.invuln=id==='hollowKing'?2:0;notify('UÍVO DO VAZIO')}
+ else if(id==='dreadmaw'){for(const h of (currentHouse?houseVictims:humans)){if(h.alive&&dist(h,player)<250){h.alive=false;killCount++;player.essence++;addParticles(h.x,h.y,'#a83d46',14)}}if(currentHouse&&houseVictims.every(v=>!v.alive))currentHouse.cleared=true;checkEvolution();player.invuln=4;notify('RUPTURA ABISSAL')}
 }
 function update(dt){
  elapsed+=dt;player.attackCd=Math.max(0,player.attackCd-dt);player.abilityCd=Math.max(0,player.abilityCd-dt);player.invuln=Math.max(0,player.invuln-dt);player.camouflage=Math.max(0,player.camouflage-dt);
@@ -384,23 +388,23 @@ function interact(){
  if(nearest)enterHouse(nearest);else notify('APROXIME-SE DA PORTA DE UMA CASA');
 }
 function drawPlayer(){
- const s=player.species,size=s==='anguish'||s==='influence'?25:s==='tormentor'||s==='marrow'?22:s==='quad'?19:15;
+ const s=player.species,size=['dreadmaw','carrionTitan'].includes(s)?31:['nightSovereign','hollowKing'].includes(s)?28:['anguish','influence','warden'].includes(s)?25:['tormentor','marrow','reaper','siren'].includes(s)?22:s==='quad'?19:15;
  ctx.save();ctx.translate(player.x,player.y);ctx.rotate(player.facing);
  ctx.fillStyle='#02040599';ctx.beginPath();ctx.ellipse(0,7,size*1.2,size*.72,0,0,Math.PI*2);ctx.fill();
  if(player.camouflage>0)ctx.globalAlpha=.4;
  // Ground aura and species-specific silhouette
  if(s==='influence'||s==='anguish'){ctx.strokeStyle=s==='anguish'?'#b9414b':'#8d8798';ctx.globalAlpha*=.45;ctx.lineWidth=2;ctx.beginPath();ctx.arc(0,0,size*1.65+Math.sin(elapsed*4)*3,0,Math.PI*2);ctx.stroke();ctx.globalAlpha=player.camouflage>0?.4:1}
- ctx.fillStyle=s==='anguish'?'#57232b':s==='influence'?'#8e8790':s==='despair'?'#3c343b':s==='marrow'?'#62544a':'#090d0e';
+ ctx.fillStyle=s==='anguish'||s==='dreadmaw'?'#57232b':s==='influence'||s==='hollowKing'?'#8e8790':s==='despair'||s==='siren'?'#3c343b':s==='marrow'||s==='warden'||s==='carrionTitan'?'#62544a':s==='reaper'||s==='nightSovereign'?'#38272d':'#090d0e';
  if(s==='quad'){ctx.beginPath();ctx.ellipse(-2,0,size*1.2,size*.72,0,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#111718';ctx.lineWidth=5;for(const yy of [-1,1]){ctx.beginPath();ctx.moveTo(-size*.45,yy*size*.45);ctx.lineTo(-size*.9,yy*size*.9);ctx.moveTo(size*.4,yy*size*.4);ctx.lineTo(size*.75,yy*size*.85);ctx.stroke()}}
  else{ctx.beginPath();ctx.ellipse(-2,1,size*.72,size*1.05,0,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.ellipse(size*.52,0,size*.63,size*.55,0,0,Math.PI*2);ctx.fill();
   ctx.strokeStyle=s==='marrow'?'#b9a18a':'#242c2c';ctx.lineWidth=3;
   for(let i=0;i<3;i++){ctx.beginPath();ctx.moveTo(-size*.25+i*5,-size*.5);ctx.lineTo(-size*.55+i*5,-size*1.05);ctx.moveTo(-size*.25+i*5,size*.5);ctx.lineTo(-size*.55+i*5,size*1.05);ctx.stroke()}
  }
  // Head, jaw, eyes and sharp facial details
- ctx.fillStyle=s==='anguish'?'#c64a51':s==='influence'?'#d2c4bd':s==='marrow'?'#b9a28b':'#9b9b91';
+ ctx.fillStyle=['anguish','dreadmaw','reaper'].includes(s)?'#c64a51':['influence','hollowKing','siren'].includes(s)?'#d2c4bd':['marrow','warden','carrionTitan'].includes(s)?'#b9a28b':'#9b9b91';
  ctx.beginPath();ctx.ellipse(size*.78,0,size*.38,size*.31,0,0,Math.PI*2);ctx.fill();
  ctx.fillStyle='#050607';ctx.fillRect(size*.78,-size*.19,4,3);ctx.fillRect(size*.78,size*.1,4,3);
- ctx.fillStyle=s==='anguish'?'#ff6870':'#d9c9a2';ctx.shadowColor=ctx.fillStyle;ctx.shadowBlur=s==='anguish'?12:5;ctx.fillRect(size*.92,-size*.14,3,2);ctx.fillRect(size*.92,size*.12,3,2);ctx.shadowBlur=0;
+ ctx.fillStyle=['anguish','dreadmaw','reaper','nightSovereign'].includes(s)?'#ff6870':'#d9c9a2';ctx.shadowColor=ctx.fillStyle;ctx.shadowBlur=s==='anguish'?12:5;ctx.fillRect(size*.92,-size*.14,3,2);ctx.fillRect(size*.92,size*.12,3,2);ctx.shadowBlur=0;
  if(['tormentor','anguish','marrow'].includes(s)){ctx.strokeStyle=s==='marrow'?'#c1a88d':'#a73c45';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(-2,-size*.55);ctx.lineTo(-size*.55,-size*1.35);ctx.moveTo(-2,size*.55);ctx.lineTo(-size*.55,size*1.35);ctx.stroke()}
  ctx.fillStyle=s==='marrow'?'#c0a78d':s==='anguish'?'#a93a45':'#303b39';for(let i=0;i<4;i++){const px=-size*.55-i*size*.22;ctx.beginPath();ctx.moveTo(px,-size*.35);ctx.lineTo(px-size*.18,-size*.92);ctx.lineTo(px+size*.12,-size*.45);ctx.fill();ctx.beginPath();ctx.moveTo(px,size*.35);ctx.lineTo(px-size*.18,size*.92);ctx.lineTo(px+size*.12,size*.45);ctx.fill()}
  if(s==='biped'||s==='tormentor'||s==='anguish'){ctx.strokeStyle='#252b2b';ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(-size*.25,-size*.35);ctx.lineTo(-size*.85,-size*.8);ctx.moveTo(-size*.25,size*.35);ctx.lineTo(-size*.85,size*.8);ctx.stroke()}
