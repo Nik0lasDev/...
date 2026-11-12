@@ -177,9 +177,10 @@ function update(dt){
   player.facing=Math.atan2(dy,dx);
   const stepX=dx*speed*dt,stepY=dy*speed*dt;
   if(currentHouse){
-   // Movimento interno não usa colisões do mapa externo; os limites são os da sala.
-   const roomLeft=currentHouse.x+18,roomRight=currentHouse.x+currentHouse.w-18;
-   const roomTop=currentHouse.y+18,roomBottom=currentHouse.y+currentHouse.h-28;
+   // Os limites seguem o cômodo desenhado (380x290), não a planta externa da casa.
+   // A planta externa mede apenas ~105-165px e prendia o jogador perto do ponto de entrada.
+   const roomLeft=currentHouse.cx-170,roomRight=currentHouse.cx+170;
+   const roomTop=currentHouse.cy-125,roomBottom=currentHouse.cy+105;
    player.x=clamp(player.x+stepX,roomLeft,roomRight);
    player.y=clamp(player.y+stepY,roomTop,roomBottom);
   }else moveEntity(player,stepX,stepY,player.r);
@@ -203,8 +204,8 @@ function update(dt){
     }
     if(h.state==='panic'&&h.fear<=0)h.state='walk';
    }
-   const left=currentHouse.x+22,right=currentHouse.x+currentHouse.w-22;
-   const top=currentHouse.y+22,bottom=currentHouse.y+currentHouse.h-32;
+   const left=currentHouse.cx-165,right=currentHouse.cx+165;
+   const top=currentHouse.cy-120,bottom=currentHouse.cy+100;
    h.x=clamp(h.x+h.vx*dt,left,right);
    h.y=clamp(h.y+h.vy*dt,top,bottom);
    if(h.state==='walk'){h.vx*=.92;h.vy*=.92}
