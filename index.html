@@ -82,16 +82,23 @@ const rand=(a,b)=>a+Math.random()*(b-a);
 const dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 let W=0,H=0,dpr=1,last=0,elapsed=0,active=false,paused=false,evolving=false;
 const TILE=64, WORLD_W=2600,WORLD_H=2200;
-let keys=new Set(),humans=[],buildings=[],houses=[],lamps=[],particles=[],police=[],killCount=0,alert=0,spawnClock=0,toastTimer=0,currentHouse=null,houseVictims=[],houseTimer=0,houseCallMade=false,houseOutside=null;
+let keys=new Set(),humans=[],buildings=[],houses=[],lamps=[],particles=[],police=[],bullets=[],killCount=0,alert=0,spawnClock=0,toastTimer=0,currentHouse=null,houseVictims=[],houseTimer=0,houseCallMade=false,houseOutside=null;
 const camera={x:0,y:0};
 const evolution={
  larva:{name:'Filhote Sombrio',hp:100,speed:150,damage:30,stamina:100,ability:'Instinto predatório',desc:'Uma criatura pequena e frágil. Rápida para se esconder, mas ainda sem especialização.',next:['biped','quad']},
  biped:{name:'Bipedal Stalker',hp:145,speed:190,damage:43,stamina:120,ability:'Passo silencioso',desc:'Forma humanoide alta. Observa a presa e acelera em ataques de emboscada.',next:['tormentor','influence']},
  quad:{name:'Quadrupedal Stalker',hp:165,speed:225,damage:48,stamina:130,ability:'Investida predatória',desc:'Quatro apoios, aceleração brutal e perseguição persistente.',next:['tormentor','despair']},
- tormentor:{name:'Tormentor',hp:260,speed:205,damage:72,stamina:160,ability:'Frenesi',desc:'Uma forma de violência extrema. Aguenta muito dano e ataca sem hesitação.',next:['anguish','influence']},
- despair:{name:'Despair Culler',hp:190,speed:165,damage:58,stamina:150,ability:'Pressão psíquica',desc:'Uma presença que detecta vítimas vulneráveis e as desorienta.',next:['anguish','influence']},
- influence:{name:'Entity of Influence',hp:320,speed:145,damage:60,stamina:180,ability:'Influência',desc:'Entidade raríssima. Amplifica o caos ao redor e altera o comportamento de outras criaturas.',next:['anguish']},
- anguish:{name:'Anguish',hp:380,speed:185,damage:90,stamina:200,ability:'Olhar do abismo',desc:'Uma forma final de ameaça. Sua presença provoca pânico e abre caminho através da cidade.',next:[]},
+ tormentor:{name:'Tormentor',hp:260,speed:205,damage:72,stamina:160,ability:'Frenesi',desc:'Uma forma de violência extrema. Aguenta muito dano e ataca sem hesitação.',next:['warden','reaper','influence']},
+ warden:{name:'Grave Warden',hp:340,speed:155,damage:82,stamina:190,ability:'Couraça viva',desc:'Forma intermediária pesada, coberta por placas ósseas e resistente.',next:['dreadmaw','carrionTitan']},
+ reaper:{name:'Crimson Reaper',hp:220,speed:250,damage:76,stamina:210,ability:'Rasante',desc:'Predador intermediário veloz, com membros alongados e ataques de aproximação.',next:['nightSovereign','dreadmaw']},
+ despair:{name:'Despair Culler',hp:190,speed:165,damage:58,stamina:150,ability:'Pressão psíquica',desc:'Uma presença que detecta vítimas vulneráveis e as desorienta.',next:['siren','anguish','influence']},
+ siren:{name:'Pale Siren',hp:245,speed:195,damage:68,stamina:190,ability:'Uivo espectral',desc:'Mutação intermediária que espalha pânico e distorce a percepção.',next:['nightSovereign','hollowKing']},
+ influence:{name:'Entity of Influence',hp:320,speed:145,damage:60,stamina:180,ability:'Influência',desc:'Entidade raríssima. Amplifica o caos ao redor e altera o comportamento de outras criaturas.',next:['anguish','siren']},
+ anguish:{name:'Anguish',hp:380,speed:185,damage:90,stamina:200,ability:'Olhar do abismo',desc:'Forma avançada de ameaça, capaz de provocar pânico e abrir caminho pela cidade.',next:['dreadmaw','nightSovereign']},
+ dreadmaw:{name:'Dreadmaw',hp:520,speed:205,damage:118,stamina:250,ability:'Ruptura abissal',desc:'Forma final colossal, com mandíbula blindada e força devastadora.',next:[]},
+ nightSovereign:{name:'Night Sovereign',hp:440,speed:235,damage:105,stamina:280,ability:'Domínio noturno',desc:'Forma final veloz, envolta por uma aura que desorienta tudo ao redor.',next:[]},
+ carrionTitan:{name:'Carrion Titan',hp:680,speed:135,damage:132,stamina:260,ability:'Colapso',desc:'Forma final gigantesca, coberta por carapaça e espinhos.',next:[]},
+ hollowKing:{name:'Hollow King',hp:470,speed:175,damage:112,stamina:270,ability:'Coroa do vazio',desc:'Forma final espectral que domina o campo com ondas de medo.',next:[]},
  original:{name:'Rastejante de Breu',hp:130,speed:175,damage:38,stamina:115,ability:'Camuflagem',desc:'Uma mutação original: corpo baixo que se mistura às sombras e ataca de surpresa.',next:['biped','quad']},
  marrow:{name:'Devorador Ósseo',hp:230,speed:170,damage:66,stamina:150,ability:'Ruptura',desc:'Uma mutação original blindada, capaz de romper bloqueios e resistir a disparos.',next:['tormentor','anguish']}
 };
@@ -112,7 +119,7 @@ function spawnHuman(x,y){
  humans.push({x:x??rand(90,WORLD_W-90),y:y??rand(90,WORLD_H-90),vx:0,vy:0,r:7,hp:1,state:'walk',fear:0,call:0,hide:0,alive:true,name:names[Math.floor(Math.random()*names.length)],seed:Math.random()*10});
 }
 function reset(){
- killCount=0;alert=0;elapsed=0;spawnClock=0;humans=[];police=[];particles=[];currentHouse=null;houseVictims=[];houseTimer=0;houseCallMade=false;houseOutside=null;player.x=1450;player.y=1040;player.hp=100;player.maxHp=100;player.hunger=100;player.essence=0;player.level=0;player.species='larva';player.stamina=100;player.attackCd=0;player.abilityCd=0;player.invuln=0;player.camouflage=0;
+ killCount=0;alert=0;elapsed=0;spawnClock=0;humans=[];police=[];bullets=[];particles=[];currentHouse=null;houseVictims=[];houseTimer=0;houseCallMade=false;houseOutside=null;player.x=1450;player.y=1040;player.hp=100;player.maxHp=100;player.hunger=100;player.essence=0;player.level=0;player.species='larva';player.stamina=100;player.attackCd=0;player.abilityCd=0;player.invuln=0;player.camouflage=0;
  updateHud();$('species').textContent=evolution.larva.name;
 }
 function notify(msg){const el=$('toast');el.textContent=msg;el.classList.add('show');toastTimer=2.3}
@@ -129,25 +136,28 @@ function getStats(){return evolution[player.species]}
 function attack(){
  if(player.attackCd>0)return;
  const s=getStats();player.attackCd=player.species==='quad'?.36:.55;
- const range=player.species==='tormentor'?76:player.species==='quad'?66:54;
- let target=null,best=range;
- for(const h of (currentHouse?houseVictims:[])){if(!h.alive)continue;const d=dist(player,h);if(d<best){best=d;target=h}}
- if(target){
+ const range=['tormentor','marrow','warden','dreadmaw','carrionTitan'].includes(player.species)?82:player.species==='quad'||player.species==='reaper'?68:58;
+ let target=null,best=range,targetPolice=null;
+ for(const h of (currentHouse?houseVictims:[])){if(!h.alive)continue;const d=dist(player,h);if(d<best){best=d;target=h;targetPolice=null}}
+ if(!currentHouse)for(const p of police){const d=dist(player,p);if(d<best){best=d;target=null;targetPolice=p}}
+ if(targetPolice){targetPolice.hp-=3;addParticles(targetPolice.x,targetPolice.y,'#8b9ba8',7);if(targetPolice.hp<=0){police=police.filter(p=>p!==targetPolice);notify('POLICIAL DERROTADO')}else notify('POLICIAL FERIDO  //  '+targetPolice.hp+' DE 9 HP')}
+ else if(target){
   target.alive=false;killCount++;player.essence+=1;player.hunger=clamp(player.hunger+18,0,100);player.hp=clamp(player.hp+8,0,player.maxHp);alert=clamp(alert+1,0,10);
   addParticles(target.x,target.y,'#87353d',14);notify('PRESA CONSUMIDA  //  +1 ESSÊNCIA');
   if(currentHouse&&houseVictims.every(v=>!v.alive)){currentHouse.cleared=true;notify('RESIDÊNCIA LIMPA  //  NENHUMA TESTEMUNHA')}
   checkEvolution();
  }else addParticles(player.x+Math.cos(player.facing)*range*.65,player.y+Math.sin(player.facing)*range*.65,'#7e333a',3);
 }
-function spawnPolice(){const origin=houseOutside||player;for(let i=0;i<2+Math.floor(alert/3);i++){const a=rand(0,Math.PI*2);police.push({x:clamp(origin.x+Math.cos(a)*rand(300,450),30,WORLD_W-30),y:clamp(origin.y+Math.sin(a)*rand(300,450),30,WORLD_H-30),hp:3,cd:rand(.5,1.8),r:8})}notify('RÁDIO POLICIAL DETECTADO')}
+function spawnPolice(){const origin=houseOutside||player;for(let i=0;i<2+Math.floor(alert/3);i++){const a=rand(0,Math.PI*2);police.push({x:clamp(origin.x+Math.cos(a)*rand(300,450),30,WORLD_W-30),y:clamp(origin.y+Math.sin(a)*rand(300,450),30,WORLD_H-30),hp:9,maxHp:9,cd:rand(.5,1.8),r:9,flash:0})}notify('RÁDIO POLICIAL DETECTADO')}
 function checkEvolution(){
- const thresholds=[3,7,12,18,26,36];
+ const thresholds=[3,7,12,18,26,36,48,62,80];
  if(player.level<thresholds.length&&killCount>=thresholds[player.level])showEvolution();
 }
 function showEvolution(){
  const s=getStats();const choices=s.next.map(id=>({id,...evolution[id]}));
  if(player.level===0)choices.push({id:'original',...evolution.original});
  if(player.level===1)choices.push({id:'marrow',...evolution.marrow});
+ if(player.level===2&&!choices.some(c=>c.id==='reaper'))choices.push({id:'reaper',...evolution.reaper});
  if(!choices.length){notify('FORMA FINAL ALCANÇADA');return}
  evolving=true;active=false;$('evolution').style.display='flex';$('evoIntro').textContent='Você acumulou biomassa suficiente. Escolha uma mutação. Sua forma atual será substituída.';
  const grid=$('evoGrid');grid.innerHTML='';
@@ -224,10 +234,11 @@ function update(dt){
  }
  }
  if(!currentHouse)for(const p of police){
-  p.cd-=dt;const a=Math.atan2(player.y-p.y,player.x-p.x);moveEntity(p,Math.cos(a)*90*dt,Math.sin(a)*90*dt,p.r);
-  if(p.cd<=0&&dist(p,player)<330){p.cd=1.3; if(player.invuln<=0&&player.camouflage<=0){player.hp=Math.max(0,player.hp-7);addParticles(player.x,player.y,'#b6b7b9',4)}}
+  p.cd-=dt;p.flash=Math.max(0,(p.flash||0)-dt);const d=dist(p,player),a=Math.atan2(player.y-p.y,player.x-p.x);
+  if(d>125)moveEntity(p,Math.cos(a)*78*dt,Math.sin(a)*78*dt,p.r);
+  if(p.cd<=0&&d<390){p.cd=1.15+Math.random()*.35;p.flash=.12;const angle=a+rand(-.055,.055);bullets.push({x:p.x+Math.cos(angle)*12,y:p.y+Math.sin(angle)*12,vx:Math.cos(angle)*360,vy:Math.sin(angle)*360,life:1.5,damage:6})}
  }
- for(let i=police.length-1;i>=0;i--)if(dist(police[i],player)<26&&player.species==='tormentor')police.splice(i,1);
+ for(let i=bullets.length-1;i>=0;i--){const b=bullets[i];b.x+=b.vx*dt;b.y+=b.vy*dt;b.life-=dt;if(b.life<=0||b.x<0||b.y<0||b.x>WORLD_W||b.y>WORLD_H){bullets.splice(i,1);continue}if(dist(b,player)<player.r+3){if(player.invuln<=0&&player.camouflage<=0){player.hp=Math.max(0,player.hp-b.damage);player.invuln=.18;addParticles(player.x,player.y,'#b6b7b9',5)}bullets.splice(i,1)}}
  for(const p of particles){p.x+=p.vx*dt;p.y+=p.vy*dt;p.life-=dt;p.vx*=.96;p.vy*=.96}
  particles=particles.filter(p=>p.life>0);
  camera.x=clamp(player.x-W/2,0,WORLD_W-W);camera.y=clamp(player.y-H/2,0,WORLD_H-H);
@@ -235,7 +246,7 @@ function update(dt){
 }
 function updateHud(){
  const s=getStats();$('hp').style.width=(player.hp/player.maxHp*100)+'%';$('hpText').textContent=Math.ceil(player.hp)+' / '+player.maxHp;
- const next=[3,7,12,18,26,36][player.level]||Infinity;$('xp').style.width=(player.essence/Math.max(1,next-killCount+player.essence)*100)+'%';$('xpText').textContent=player.essence+' ESSÊNCIA';
+ const next=[3,7,12,18,26,36,48,62,80][player.level]||Infinity;$('xp').style.width=(player.essence/Math.max(1,next-killCount+player.essence)*100)+'%';$('xpText').textContent=player.essence+' ESSÊNCIA';
  $('hunger').style.width=player.hunger+'%';$('hungerText').textContent=Math.ceil(player.hunger)+'%';$('killCount').innerHTML=killCount+' <small>/ HUMANOS</small>';
  $('alertText').textContent=currentHouse?(houseCallMade?'POLÍCIA A CAMINHO':'TEMPO: '+Math.ceil(houseTimer)+'s'):(alert>7?'ALERTA MÁXIMO':alert>3?'DENÚNCIAS REGISTRADAS':'SEM ALERTA');
  $('objectiveText').textContent=currentHouse?'INVASÃO // '+houseVictims.filter(v=>v.alive).length+' MORADORES RESTANTES':player.level>=6?'SOBREVIVA À SUA PRÓPRIA LENDA':'INVADA CASAS E CAÇE '+([3,7,12,18,26,36][player.level]||'')+' PARA EVOLUIR';
@@ -312,7 +323,8 @@ function draw(){
  */
  // Police are rendered only after a resident calls for help.
  for(const h of humans){if(h.alive)drawCivilian(h)}
- for(const p of police){ctx.fillStyle='#080b0d99';ctx.beginPath();ctx.ellipse(p.x+2,p.y+8,10,4,0,0,Math.PI*2);ctx.fill();ctx.fillStyle='#273e55';ctx.beginPath();ctx.ellipse(p.x,p.y,7,10,0,0,Math.PI*2);ctx.fill();ctx.fillStyle='#9ba8ae';ctx.beginPath();ctx.arc(p.x,p.y-7,4,0,Math.PI*2);ctx.fill();ctx.fillStyle=Math.sin(elapsed*12)>0?'#c74b50':'#47769a';ctx.fillRect(p.x-4,p.y-12,8,3)}
+ for(const b of bullets){ctx.strokeStyle='#f1c77c';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(b.x-b.vx*.025,b.y-b.vy*.025);ctx.lineTo(b.x,b.y);ctx.stroke()}
+ for(const p of police){ctx.fillStyle='#080b0d99';ctx.beginPath();ctx.ellipse(p.x+2,p.y+9,12,5,0,0,Math.PI*2);ctx.fill();ctx.fillStyle='#273e55';ctx.beginPath();ctx.ellipse(p.x,p.y,8,11,0,0,Math.PI*2);ctx.fill();ctx.fillStyle='#9ba8ae';ctx.beginPath();ctx.arc(p.x,p.y-8,5,0,Math.PI*2);ctx.fill();ctx.fillStyle=Math.sin(elapsed*12)>0?'#c74b50':'#47769a';ctx.fillRect(p.x-5,p.y-14,10,4);ctx.strokeStyle='#171d22';ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(p.x+3,p.y);ctx.lineTo(p.x+13,p.y-5);ctx.stroke();ctx.fillStyle='#b9c2c7';ctx.fillRect(p.x+10,p.y-7,8,3);ctx.fillStyle='#080b0d';ctx.fillRect(p.x-8,p.y+15,16,3);ctx.fillStyle='#a64b50';ctx.fillRect(p.x-8,p.y+15,16*(p.hp/p.maxHp),3);if(p.flash>0){ctx.fillStyle='#ffe0a0';ctx.beginPath();ctx.arc(p.x+20,p.y-6,5,0,Math.PI*2);ctx.fill()}}
  for(const p of particles){ctx.globalAlpha=clamp(p.life/p.max,0,1);ctx.fillStyle=p.color;ctx.shadowBlur=9;ctx.shadowColor=p.color;ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fill()}ctx.globalAlpha=1;ctx.shadowBlur=0;
  for(const h of houses){const dx=h.x+h.w*.42+10,dy=h.y+h.h+4;ctx.fillStyle='#111819';ctx.fillRect(dx-8,dy-2,18,8);ctx.fillStyle='#786e5d';ctx.fillRect(dx-6,dy,14,4)}
  drawPlayer();ctx.restore();
