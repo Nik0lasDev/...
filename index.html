@@ -103,7 +103,7 @@ function makeCity(){
  for(let y=130;y<WORLD_H-100;y+=260)for(let x=130;x<WORLD_W-100;x+=290){
   if(Math.random()<.13)continue;
   const w=rand(105,165),h=rand(105,165);
-  const building={x:x+rand(-25,25),y:y+rand(-25,25),w,h,shade:Math.floor(rand(23,39)),roof:Math.random()};buildings.push(building);houses.push({...building,id:houses.length+1,residents:2+Math.floor(Math.random()*3)});
+  const building={x:x+rand(-25,25),y:y+rand(-25,25),w,h,shade:Math.floor(rand(23,39)),roof:Math.random()};buildings.push(building);houses.push({...building,id:houses.length+1,residents:2+Math.floor(Math.random()*3),cleared:false});
  }
  for(let x=80;x<WORLD_W;x+=170)for(let y=80;y<WORLD_H;y+=170)if(Math.random()<.72)lamps.push({x:x+rand(-35,35),y:y+rand(-35,35),on:Math.random()<.38});
 }
@@ -112,7 +112,7 @@ function spawnHuman(x,y){
  humans.push({x:x??rand(90,WORLD_W-90),y:y??rand(90,WORLD_H-90),vx:0,vy:0,r:7,hp:1,state:'walk',fear:0,call:0,hide:0,alive:true,name:names[Math.floor(Math.random()*names.length)],seed:Math.random()*10});
 }
 function reset(){
- killCount=0;alert=0;elapsed=0;spawnClock=0;humans=[];police=[];particles=[];currentHouse=null;houseVictims=[];houseTimer=0;houseCallMade=false;houseOutside=null;player.x=WORLD_W/2;player.y=WORLD_H/2;player.hp=100;player.maxHp=100;player.hunger=100;player.essence=0;player.level=0;player.species='larva';player.stamina=100;player.attackCd=0;player.abilityCd=0;player.invuln=0;player.camouflage=0;
+ killCount=0;alert=0;elapsed=0;spawnClock=0;humans=[];police=[];particles=[];currentHouse=null;houseVictims=[];houseTimer=0;houseCallMade=false;houseOutside=null;player.x=1450;player.y=1040;player.hp=100;player.maxHp=100;player.hunger=100;player.essence=0;player.level=0;player.species='larva';player.stamina=100;player.attackCd=0;player.abilityCd=0;player.invuln=0;player.camouflage=0;
  updateHud();$('species').textContent=evolution.larva.name;
 }
 function notify(msg){const el=$('toast');el.textContent=msg;el.classList.add('show');toastTimer=2.3}
@@ -135,11 +135,11 @@ function attack(){
  if(target){
   target.alive=false;killCount++;player.essence+=1;player.hunger=clamp(player.hunger+18,0,100);player.hp=clamp(player.hp+8,0,player.maxHp);alert=clamp(alert+1,0,10);
   addParticles(target.x,target.y,'#87353d',14);notify('PRESA CONSUMIDA  //  +1 ESSÊNCIA');
-  if(currentHouse&&houseVictims.every(v=>!v.alive))notify('RESIDÊNCIA LIMPA  //  NENHUMA TESTEMUNHA');
+  if(currentHouse&&houseVictims.every(v=>!v.alive)){currentHouse.cleared=true;notify('RESIDÊNCIA LIMPA  //  NENHUMA TESTEMUNHA')}
   checkEvolution();
  }else addParticles(player.x+Math.cos(player.facing)*range*.65,player.y+Math.sin(player.facing)*range*.65,'#7e333a',3);
 }
-function spawnPolice(){for(let i=0;i<2+Math.floor(alert/3);i++){const a=rand(0,Math.PI*2);police.push({x:clamp(player.x+Math.cos(a)*rand(300,450),30,WORLD_W-30),y:clamp(player.y+Math.sin(a)*rand(300,450),30,WORLD_H-30),hp:3,cd:rand(.5,1.8),r:8})}notify('RÁDIO POLICIAL DETECTADO')}
+function spawnPolice(){const origin=houseOutside||player;for(let i=0;i<2+Math.floor(alert/3);i++){const a=rand(0,Math.PI*2);police.push({x:clamp(origin.x+Math.cos(a)*rand(300,450),30,WORLD_W-30),y:clamp(origin.y+Math.sin(a)*rand(300,450),30,WORLD_H-30),hp:3,cd:rand(.5,1.8),r:8})}notify('RÁDIO POLICIAL DETECTADO')}
 function checkEvolution(){
  const thresholds=[3,7,12,18,26,36];
  if(player.level<thresholds.length&&killCount>=thresholds[player.level])showEvolution();
@@ -162,10 +162,10 @@ function useAbility(){
  const id=player.species;
  if(id==='larva'||id==='original'||id==='biped'){player.camouflage=4;player.stamina=100;notify('CAMUFLAGEM ATIVADA')}
  else if(id==='quad'){const s=getStats();const dx=Math.cos(player.facing),dy=Math.sin(player.facing);for(let i=0;i<8;i++)moveEntity(player,dx*14,dy*14,player.r);addParticles(player.x,player.y,'#a64a50',14);const h=humans.find(h=>h.alive&&dist(h,player)<85);if(h){h.alive=false;killCount++;player.essence++;player.hunger=100;checkEvolution()}notify('INVESTIDA PREDATÓRIA')}
- else if(id==='tormentor'||id==='marrow'){for(const h of humans){if(h.alive&&dist(h,player)<125){h.alive=false;killCount++;player.essence++;player.hunger=100;addParticles(h.x,h.y,'#9b343c',10)}}checkEvolution();player.invuln=2;notify('FRENESI DESTRUTIVO')}
- else if(id==='despair'){for(const h of humans){if(dist(h,player)<260){h.fear=10;h.state='panic'}}notify('PÂNICO PSÍQUICO')}
- else if(id==='influence'){alert=10;for(const h of humans){if(dist(h,player)<400){h.fear=12;h.state='panic'}}notify('A CIDADE INTEIRA SENTE SUA PRESENÇA')}
- else if(id==='anguish'){for(const h of humans){if(dist(h,player)<210){h.alive=false;killCount++;player.essence++;addParticles(h.x,h.y,'#a33b42',10)}}checkEvolution();player.invuln=3;notify('OLHAR DO ABISMO')}
+ else if(id==='tormentor'||id==='marrow'){for(const h of (currentHouse?houseVictims:humans)){if(h.alive&&dist(h,player)<125){h.alive=false;killCount++;player.essence++;player.hunger=100;addParticles(h.x,h.y,'#9b343c',10)}}if(currentHouse&&houseVictims.every(v=>!v.alive))currentHouse.cleared=true;checkEvolution();player.invuln=2;notify('FRENESI DESTRUTIVO')}
+ else if(id==='despair'){for(const h of (currentHouse?houseVictims:humans)){if(dist(h,player)<260){h.fear=10;h.state='panic'}}notify('PÂNICO PSÍQUICO')}
+ else if(id==='influence'){alert=10;for(const h of (currentHouse?houseVictims:humans)){if(dist(h,player)<400){h.fear=12;h.state='panic'}}notify('A CIDADE INTEIRA SENTE SUA PRESENÇA')}
+ else if(id==='anguish'){for(const h of (currentHouse?houseVictims:humans)){if(dist(h,player)<210){h.alive=false;killCount++;player.essence++;addParticles(h.x,h.y,'#a33b42',10)}}if(currentHouse&&houseVictims.every(v=>!v.alive))currentHouse.cleared=true;checkEvolution();player.invuln=3;notify('OLHAR DO ABISMO')}
 }
 function update(dt){
  elapsed+=dt;player.attackCd=Math.max(0,player.attackCd-dt);player.abilityCd=Math.max(0,player.abilityCd-dt);player.invuln=Math.max(0,player.invuln-dt);player.camouflage=Math.max(0,player.camouflage-dt);
@@ -173,12 +173,12 @@ function update(dt){
  const len=Math.hypot(dx,dy)||1;dx/=len;dy/=len;
  const sprint=keys.has('shift')&&player.stamina>1&&Math.hypot(dx,dy)>.1;const speed=s.speed*(sprint?1.55:1);
  if(sprint)player.stamina=Math.max(0,player.stamina-28*dt);else player.stamina=Math.min(s.stamina,player.stamina+18*dt);
- if(dx||dy){player.facing=Math.atan2(dy,dx);moveEntity(player,dx*speed*dt,dy*speed*dt,player.r)}
+ if(dx||dy){player.facing=Math.atan2(dy,dx);if(currentHouse){player.x=clamp(player.x+dx*speed*dt,currentHouse.cx-170,currentHouse.cx+170);player.y=clamp(player.y+dy*speed*dt,currentHouse.cy-125,currentHouse.cy+105)}else moveEntity(player,dx*speed*dt,dy*speed*dt,player.r)}
  player.hunger=Math.max(0,player.hunger-dt*.65);if(player.hunger<=0)player.hp=Math.max(0,player.hp-dt*3);
  if(player.hp<=0){active=false;paused=true;$('pause').style.display='flex';$('pause').querySelector('h2').textContent='VOCÊ FOI CONTIDO';$('pause').querySelector('.story').textContent='A cidade sobreviveu por enquanto. Recomece para tentar outra evolução.'}
  if(currentHouse){
   houseTimer=Math.max(0,houseTimer-dt);
-  for(const h of houseVictims){if(!h.alive)continue;h.fear=Math.max(0,h.fear-dt*.2);const d=dist(h,player);if(d<170){h.state='panic';const a=Math.atan2(h.y-player.y,h.x-player.x);h.vx=Math.cos(a)*52;h.vy=Math.sin(a)*52;moveEntity(h,h.vx*dt,h.vy*dt,7)}else{h.seed+=dt;if(h.state!=='panic')h.vx=h.vy=0}}
+  for(const h of houseVictims){if(!h.alive)continue;h.fear=Math.max(0,h.fear-dt*.2);const d=dist(h,player);if(d<170){h.state='panic';const a=Math.atan2(h.y-player.y,h.x-player.x);h.vx=Math.cos(a)*52;h.vy=Math.sin(a)*52;h.x=clamp(h.x+h.vx*dt,currentHouse.cx-165,currentHouse.cx+165);h.y=clamp(h.y+h.vy*dt,currentHouse.cy-120,currentHouse.cy+95)}else{h.seed+=dt;if(h.state!=='panic')h.vx=h.vy=0}}
   if(houseTimer<=0&&!houseCallMade&&houseVictims.some(v=>v.alive)){houseCallMade=true;alert=clamp(alert+5,0,10);notify('ALGUÉM CONSEGUIU LIGAR PARA A POLÍCIA');spawnPolice()}
  }else{
   const danger=player.camouflage>0?0:1;
@@ -194,7 +194,7 @@ function update(dt){
   moveEntity(h,h.vx*dt,h.vy*dt,h.r);
  }
  }
- for(const p of police){
+ if(!currentHouse)for(const p of police){
   p.cd-=dt;const a=Math.atan2(player.y-p.y,player.x-p.x);moveEntity(p,Math.cos(a)*90*dt,Math.sin(a)*90*dt,p.r);
   if(p.cd<=0&&dist(p,player)<330){p.cd=1.3; if(player.invuln<=0&&player.camouflage<=0){player.hp=Math.max(0,player.hp-7);addParticles(player.x,player.y,'#b6b7b9',4)}}
  }
@@ -309,7 +309,7 @@ function drawHouseInterior(){
  drawPlayer();ctx.restore();const g=ctx.createRadialGradient(W/2,H/2,40,W/2,H/2,Math.max(W,H)*.7);g.addColorStop(0,'rgba(0,0,0,0)');g.addColorStop(1,'rgba(0,0,0,.7)');ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
 }
 function enterHouse(h){
- if(currentHouse)return;houseOutside={x:player.x,y:player.y};currentHouse=h;h.cx=h.x+h.w/2;h.cy=h.y+h.h/2;player.x=h.cx;player.y=h.cy+65;player.vx=player.vy=0;
+ if(currentHouse)return;if(h.cleared){notify('RESIDÊNCIA JÁ VASCULHADA');return}houseOutside={x:player.x,y:player.y};currentHouse=h;h.cx=h.x+h.w/2;h.cy=h.y+h.h/2;player.x=h.cx;player.y=h.cy+65;player.vx=player.vy=0;
  houseVictims=Array.from({length:h.residents},(_,i)=>({x:h.cx+rand(-125,125),y:h.cy+rand(-75,65),vx:0,vy:0,r:7,hp:1,state:'walk',fear:0,alive:true,seed:i}));
  houseTimer=38+Math.floor(Math.random()*13);houseCallMade=false;police=[];notify('RESIDÊNCIA '+String(h.id).padStart(2,'0')+' // '+h.residents+' MORADORES');
 }
