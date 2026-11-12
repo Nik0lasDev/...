@@ -161,7 +161,7 @@ function useAbility(){
  if(player.abilityCd>0)return;player.abilityCd=12;
  const id=player.species;
  if(id==='larva'||id==='original'||id==='biped'){player.camouflage=4;player.stamina=100;notify('CAMUFLAGEM ATIVADA')}
- else if(id==='quad'){const s=getStats();const dx=Math.cos(player.facing),dy=Math.sin(player.facing);for(let i=0;i<8;i++)moveEntity(player,dx*14,dy*14,player.r);addParticles(player.x,player.y,'#a64a50',14);const h=humans.find(h=>h.alive&&dist(h,player)<85);if(h){h.alive=false;killCount++;player.essence++;player.hunger=100;checkEvolution()}notify('INVESTIDA PREDATÓRIA')}
+ else if(id==='quad'){const s=getStats();const dx=Math.cos(player.facing),dy=Math.sin(player.facing);for(let i=0;i<8;i++){if(currentHouse){player.x=clamp(player.x+dx*14,currentHouse.cx-170,currentHouse.cx+170);player.y=clamp(player.y+dy*14,currentHouse.cy-125,currentHouse.cy+105)}else moveEntity(player,dx*14,dy*14,player.r)}addParticles(player.x,player.y,'#a64a50',14);const h=(currentHouse?houseVictims:humans).find(h=>h.alive&&dist(h,player)<85);if(h){h.alive=false;killCount++;player.essence++;player.hunger=100;if(currentHouse&&houseVictims.every(v=>!v.alive))currentHouse.cleared=true;checkEvolution()}notify('INVESTIDA PREDATÓRIA')}
  else if(id==='tormentor'||id==='marrow'){for(const h of (currentHouse?houseVictims:humans)){if(h.alive&&dist(h,player)<125){h.alive=false;killCount++;player.essence++;player.hunger=100;addParticles(h.x,h.y,'#9b343c',10)}}if(currentHouse&&houseVictims.every(v=>!v.alive))currentHouse.cleared=true;checkEvolution();player.invuln=2;notify('FRENESI DESTRUTIVO')}
  else if(id==='despair'){for(const h of (currentHouse?houseVictims:humans)){if(dist(h,player)<260){h.fear=10;h.state='panic'}}notify('PÂNICO PSÍQUICO')}
  else if(id==='influence'){alert=10;for(const h of (currentHouse?houseVictims:humans)){if(dist(h,player)<400){h.fear=12;h.state='panic'}}notify('A CIDADE INTEIRA SENTE SUA PRESENÇA')}
@@ -345,7 +345,7 @@ function drawPlayer(){
  ctx.restore();
 }
 function frame(t){const dt=Math.min((t-last)/1000||0,.033);last=t;if(active&&!paused&&!evolving)update(dt);draw();if(toastTimer>0){toastTimer-=dt;if(toastTimer<=0)$('toast').classList.remove('show')}requestAnimationFrame(frame)}
-function start(){reset();makeCity();$('start').style.display='none';$('hud').style.display='block';active=true;paused=false;$('pause').style.display='none';last=performance.now()}
+function start(){reset();makeCity();if(houses.length){const first=houses[0];player.x=first.x+first.w*.42+10;player.y=first.y+first.h+40} $('start').style.display='none';$('hud').style.display='block';active=true;paused=false;$('pause').style.display='none';last=performance.now()}
 function pause(){if(!active&&!paused)return;active=false;paused=true;$('pause').style.display='flex'}
 function resume(){if(player.hp<=0){start();return}paused=false;active=true;$('pause').style.display='none';last=performance.now()}
 $('startBtn').addEventListener('click',start);$('resumeBtn').addEventListener('click',resume);$('restartBtn').addEventListener('click',start);
