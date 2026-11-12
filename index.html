@@ -173,12 +173,42 @@ function update(dt){
  const len=Math.hypot(dx,dy)||1;dx/=len;dy/=len;
  const sprint=keys.has('shift')&&player.stamina>1&&Math.hypot(dx,dy)>.1;const speed=s.speed*(sprint?1.55:1);
  if(sprint)player.stamina=Math.max(0,player.stamina-28*dt);else player.stamina=Math.min(s.stamina,player.stamina+18*dt);
- if(dx||dy){player.facing=Math.atan2(dy,dx);if(currentHouse){player.x=clamp(player.x+dx*speed*dt,currentHouse.cx-170,currentHouse.cx+170);player.y=clamp(player.y+dy*speed*dt,currentHouse.cy-125,currentHouse.cy+105)}else moveEntity(player,dx*speed*dt,dy*speed*dt,player.r)}
+ if(dx||dy){
+  player.facing=Math.atan2(dy,dx);
+  const stepX=dx*speed*dt,stepY=dy*speed*dt;
+  if(currentHouse){
+   // Movimento interno não usa colisões do mapa externo; os limites são os da sala.
+   const roomLeft=currentHouse.x+18,roomRight=currentHouse.x+currentHouse.w-18;
+   const roomTop=currentHouse.y+18,roomBottom=currentHouse.y+currentHouse.h-28;
+   player.x=clamp(player.x+stepX,roomLeft,roomRight);
+   player.y=clamp(player.y+stepY,roomTop,roomBottom);
+  }else moveEntity(player,stepX,stepY,player.r);
+ }
  player.hunger=Math.max(0,player.hunger-dt*.65);if(player.hunger<=0)player.hp=Math.max(0,player.hp-dt*3);
  if(player.hp<=0){active=false;paused=true;$('pause').style.display='flex';$('pause').querySelector('h2').textContent='VOCÊ FOI CONTIDO';$('pause').querySelector('.story').textContent='A cidade sobreviveu por enquanto. Recomece para tentar outra evolução.'}
  if(currentHouse){
   houseTimer=Math.max(0,houseTimer-dt);
-  for(const h of houseVictims){if(!h.alive)continue;h.fear=Math.max(0,h.fear-dt*.2);const d=dist(h,player);if(d<170){h.state='panic';const a=Math.atan2(h.y-player.y,h.x-player.x);h.vx=Math.cos(a)*52;h.vy=Math.sin(a)*52;h.x=clamp(h.x+h.vx*dt,currentHouse.cx-165,currentHouse.cx+165);h.y=clamp(h.y+h.vy*dt,currentHouse.cy-120,currentHouse.cy+95)}else{h.seed+=dt;if(h.state!=='panic')h.vx=h.vy=0}}
+  for(const h of houseVictims){
+   if(!h.alive)continue;
+   h.fear=Math.max(0,h.fear-dt*.2);
+   const d=dist(h,player);
+   if(d<185){
+    h.state='panic';
+    const a=Math.atan2(h.y-player.y,h.x-player.x);
+    h.vx=Math.cos(a)*72;h.vy=Math.sin(a)*72;
+   }else{
+    h.seed+=dt;
+    if(h.state!=='panic'&&Math.random()<dt*.65){
+     const a=rand(0,Math.PI*2);h.vx=Math.cos(a)*24;h.vy=Math.sin(a)*24;
+    }
+    if(h.state==='panic'&&h.fear<=0)h.state='walk';
+   }
+   const left=currentHouse.x+22,right=currentHouse.x+currentHouse.w-22;
+   const top=currentHouse.y+22,bottom=currentHouse.y+currentHouse.h-32;
+   h.x=clamp(h.x+h.vx*dt,left,right);
+   h.y=clamp(h.y+h.vy*dt,top,bottom);
+   if(h.state==='walk'){h.vx*=.92;h.vy*=.92}
+  }
   if(houseTimer<=0&&!houseCallMade&&houseVictims.some(v=>v.alive)){houseCallMade=true;alert=clamp(alert+5,0,10);notify('ALGUÉM CONSEGUIU LIGAR PARA A POLÍCIA');spawnPolice()}
  }else{
   const danger=player.camouflage>0?0:1;
