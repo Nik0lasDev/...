@@ -245,7 +245,7 @@ function draw(){
   // entrance, canopy and roof details
   ctx.fillStyle='#0b1012';ctx.fillRect(b.x+b.w*.42,b.y+b.h-25,20,25);
   ctx.fillStyle='#6d716a';ctx.fillRect(b.x+b.w*.42-3,b.y+b.h-26,26,3);
-  ctx.fillStyle='#252d2e';ctx.fillRect(b.x+17,b.y+17,Math.max(20,b.w-34),Math.max(14,b.h-34));
+  ctx.fillStyle='#252d2e';ctx.globalAlpha=.12;ctx.fillRect(b.x+17,b.y+17,Math.max(20,b.w-34),Math.max(14,b.h-34));ctx.globalAlpha=1;
   ctx.strokeStyle='#6d716b';ctx.globalAlpha=.22;ctx.lineWidth=2;ctx.strokeRect(b.x+18,b.y+18,b.w-36,b.h-36);ctx.globalAlpha=1;
   if(b.roof>.42){ctx.fillStyle='#414947';ctx.fillRect(b.x+b.w*.65,b.y+b.h*.2,18,13);ctx.fillStyle='#69716d';ctx.fillRect(b.x+b.w*.65+3,b.y+b.h*.2-3,12,3)}
   if(b.roof>.72){ctx.strokeStyle='#777b72';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(b.x+b.w*.25,b.y+b.h*.2);ctx.lineTo(b.x+b.w*.25,b.y+b.h*.2-18);ctx.stroke()}
