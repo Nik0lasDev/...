@@ -293,7 +293,10 @@ function draw(){
 }
 function drawHouseInterior(){
  const h=currentHouse,cx=h.cx,cy=h.cy,x=cx-190,y=cy-145,w=380,hh=290;
- ctx.fillStyle='#080b0e';ctx.fillRect(0,0,W,H);ctx.save();ctx.translate(-camera.x,-camera.y);
+ ctx.fillStyle='#080b0e';ctx.fillRect(0,0,W,H);ctx.save();
+ // O interior usa uma câmera própria: centraliza a sala mesmo quando a casa fica perto da borda do mapa.
+ // A câmera global é limitada pelo mundo e, na primeira casa, deixava o cômodo preso no canto da tela.
+ ctx.translate(W/2-currentHouse.cx,H/2-currentHouse.cy);
  ctx.fillStyle='#020405';ctx.fillRect(x-18,y-18,w+36,hh+36);ctx.fillStyle='#5c5148';ctx.fillRect(x-10,y-10,w+20,hh+20);ctx.fillStyle='#292a28';ctx.fillRect(x,y,w,hh);
  for(let gx=x;gx<x+w;gx+=40)for(let gy=y;gy<y+hh;gy+=40){ctx.strokeStyle='#3a3934';ctx.lineWidth=1;ctx.strokeRect(gx,gy,40,40)}
  ctx.fillStyle='#777064';ctx.fillRect(x,y,w,12);ctx.fillRect(x,y+hh-12,w,12);ctx.fillRect(x,y,12,hh);ctx.fillRect(x+w-12,y,12,hh);
