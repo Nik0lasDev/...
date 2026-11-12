@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#090b0e">
+<title>THE PARALLEL — Predador</title>
+<style>
+:root{color-scheme:dark;--red:#b72d36;--muted:#8b929b;--panel:rgba(12,15,19,.94)}
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#080a0d;color:#e8e9e9;font-family:Inter,ui-sans-serif,system-ui,Segoe UI,sans-serif}button{font:inherit;color:inherit;cursor:pointer;border:1px solid #454b52;background:#171b20;padding:10px 15px;letter-spacing:.08em;text-transform:uppercase;font-size:11px}button:hover{border-color:#bd4149;background:#252a30}button:focus-visible{outline:2px solid #e55b64;outline-offset:3px}
+#game{position:fixed;inset:0;width:100%;height:100%;display:block;background:#11161a}
+#vignette{pointer-events:none;position:fixed;inset:0;background:radial-gradient(ellipse at center,transparent 34%,rgba(0,0,0,.38) 100%);z-index:2}
+#hud{position:fixed;z-index:3;inset:0;pointer-events:none;display:none}
+.panel{background:var(--panel);border:1px solid rgba(160,170,180,.18);box-shadow:0 10px 40px #0008;backdrop-filter:blur(8px)}
+#status{position:absolute;left:18px;top:18px;width:238px;padding:14px}
+.eyebrow{font-size:9px;letter-spacing:.24em;color:#aeb4bb;text-transform:uppercase}.species{font-size:18px;letter-spacing:.08em;margin:5px 0 12px;color:#f2eeee}.meter{height:6px;background:#292e33;margin:5px 0 10px;overflow:hidden}.fill{height:100%;width:100%;background:#a9333b;transition:width .15s}.fill.essence{background:#8c718d}.meterlabel{display:flex;justify-content:space-between;color:#aab0b7;font-size:9px;letter-spacing:.1em}
+#objective{position:absolute;top:18px;left:50%;transform:translateX(-50%);padding:10px 18px;text-align:center;min-width:250px}
+#objective strong{display:block;font-size:11px;letter-spacing:.18em;color:#eee;margin-top:3px}
+#rightHud{position:absolute;right:18px;top:18px;padding:12px 15px;text-align:right;min-width:150px}
+#killCount{font-size:23px;color:#eee;font-weight:700}#killCount small{font-size:9px;color:#9da5ad;letter-spacing:.18em;font-weight:400}
+#ability{position:absolute;bottom:18px;left:50%;transform:translateX(-50%);padding:10px 16px;text-align:center;font-size:10px;letter-spacing:.1em;color:#c4c8cc}
+#hint{position:absolute;bottom:18px;left:18px;color:#9ca4ab;font-size:10px;line-height:1.8;text-shadow:0 2px 4px #000}
+#toast{position:absolute;top:23%;left:50%;transform:translate(-50%,-10px);opacity:0;transition:.25s;padding:12px 20px;background:#111820ed;border:1px solid #85434a;color:#f1dfe0;font-size:11px;letter-spacing:.14em;text-align:center}
+#toast.show{opacity:1;transform:translate(-50%,0)}
+.overlay{position:fixed;z-index:5;inset:0;display:flex;align-items:center;justify-content:center;padding:20px;background:radial-gradient(ellipse at center,#151a20d9,#050608f5)}
+.modal{width:min(620px,100%);max-height:90vh;overflow:auto;padding:30px;background:rgba(10,13,17,.97);border:1px solid #454950;box-shadow:0 25px 100px #000}
+.logo{font-size:clamp(34px,8vw,64px);font-weight:900;line-height:.9;letter-spacing:.13em;color:#e9e6e3;text-shadow:3px 3px 0 #5e2028}.logo span{color:#a63740}.subtitle{margin:16px 0 22px;color:#aab0b7;font-size:11px;letter-spacing:.2em;text-transform:uppercase}
+.story{color:#b9bec4;font-size:13px;line-height:1.8;max-width:500px}.warning{border-left:2px solid #a73740;padding:8px 12px;color:#aab0b7;font-size:11px;line-height:1.6;margin:20px 0}
+.primary{background:#7e252e;border-color:#b84b54;padding:13px 24px;font-weight:700}.primary:hover{background:#a12f39}
+.controls{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:20px 0;color:#9da5ad;font-size:10px}.controls span{border:1px solid #30363d;padding:8px}
+#evolution{display:none}.evo-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:20px}.evo-card{padding:14px;border:1px solid #444b52;background:#151a20;cursor:pointer;min-height:145px}.evo-card:hover{border-color:#b94a53;background:#20252c}.evo-card h3{margin:0 0 7px;font-size:14px;letter-spacing:.08em}.evo-card p{margin:0;color:#aab1b8;font-size:11px;line-height:1.6}.tag{font-size:8px;letter-spacing:.16em;color:#c45c64;text-transform:uppercase;margin-bottom:8px}
+#pause{display:none}.small{font-size:10px;color:#929aa2;line-height:1.7}
+@media(max-width:600px){#status{left:8px;top:8px;width:185px;padding:10px}#rightHud{right:8px;top:8px;padding:9px;min-width:95px}#objective{top:auto;bottom:72px;min-width:0;width:65%;padding:8px}#hint{left:8px;bottom:8px;font-size:9px}#ability{bottom:8px;left:auto;right:8px;transform:none;width:40%;font-size:9px}.species{font-size:14px}.evo-grid{grid-template-columns:1fr}.modal{padding:22px}}
+</style>
+</head>
+<body>
+<canvas id="game" aria-label="Cidade vista de cima; controle a criatura"></canvas><div id="vignette"></div>
+<div id="hud">
+ <section id="status" class="panel"><div class="eyebrow">Registro biológico // 001</div><div class="species" id="species">FILHOTE SOMBRIO</div><div class="meterlabel"><span>INTEGRIDADE</span><span id="hpText">100 / 100</span></div><div class="meter"><div id="hp" class="fill"></div></div><div class="meterlabel"><span>ESSÊNCIA</span><span id="xpText">0 / 3</span></div><div class="meter"><div id="xp" class="fill essence"></div></div><div class="meterlabel"><span>FOME</span><span id="hungerText">100%</span></div><div class="meter"><div id="hunger" class="fill"></div></div></section>
+ <section id="objective" class="panel"><div class="eyebrow">Zona urbana // Setor 04</div><strong id="objectiveText">CAÇE PARA EVOLUIR</strong></section>
+ <section id="rightHud" class="panel"><div class="eyebrow">VÍTIMAS</div><div id="killCount">0 <small>/ HUMANOS</small></div><div class="eyebrow" id="alertText">SEM ALERTA</div></section>
+ <div id="ability" class="panel">Q — INSTINTO PREDATÓRIO</div>
+ <div id="hint">WASD / SETAS — MOVER<br>SHIFT — CORRER · ESPAÇO — ATACAR<br>Q — HABILIDADE · ESC — PAUSAR</div>
+ <div id="toast"></div>
+</div>
+<div id="start" class="overlay"><div class="modal"><div class="eyebrow">ARQUIVO CLASSIFICADO // THE PARALLEL</div><div class="logo">THE <span>PARALLEL</span></div><div class="subtitle">Predador — protocolo de contenção falhou</div><p class="story">Você não é a vítima. Você é aquilo que espera nas ruas vazias, observa pelas janelas e desaparece antes que alguém consiga pedir ajuda. Comece como uma criatura insignificante. Cace. Adapte-se. Evolua.</p><div class="warning">RELATÓRIO: entidades conhecidas foram registradas nesta região. Algumas são predadores. Outras são muito piores. Nem todas podem ser controladas.</div><div class="controls"><span>WASD — MOVIMENTO</span><span>SHIFT — CORRER</span><span>ESPAÇO — ATAQUE</span><span>Q — HABILIDADE</span></div><button class="primary" id="startBtn">INICIAR CAÇADA</button><p class="small">Experiência experimental. Progresso salvo neste navegador.</p></div></div>
+<div id="evolution" class="overlay"><div class="modal"><div class="eyebrow">MUTAÇÃO DISPONÍVEL</div><h2 style="font-size:26px;letter-spacing:.12em;margin:8px 0">ESCOLHA SUA PRÓXIMA FORMA</h2><p class="story" id="evoIntro">A biomassa acumulada alterou sua estrutura.</p><div class="evo-grid" id="evoGrid"></div><p class="small">A escolha define suas habilidades e os próximos caminhos evolutivos.</p></div></div>
+<div id="pause" class="overlay"><div class="modal"><div class="eyebrow">SINAL INTERROMPIDO</div><h2 style="font-size:30px;letter-spacing:.15em">PAUSADO</h2><p class="story">A cidade continua existindo quando você não está olhando.</p><button class="primary" id="resumeBtn">VOLTAR À CAÇADA</button> <button id="restartBtn">RECOMEÇAR</button></div></div>
+<script>
+(() => {
+'use strict';
+const canvas=document.getElementById('game'),ctx=canvas.getContext('2d');
+const $=id=>document.getElementById(id);
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const rand=(a,b)=>a+Math.random()*(b-a);
+const dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
+let W=0,H=0,dpr=1,last=0,elapsed=0,active=false,paused=false,evolving=false;
+const TILE=64, WORLD_W=2600,WORLD_H=2200;
+let keys=new Set(),humans=[],buildings=[],lamps=[],particles=[],police=[],killCount=0,alert=0,spawnClock=0,toastTimer=0;
+const camera={x:0,y:0};
+const evolution={
+ larva:{name:'Filhote Sombrio',hp:100,speed:150,damage:30,stamina:100,ability:'Instinto predatório',desc:'Uma criatura pequena e frágil. Rápida para se esconder, mas ainda sem especialização.',next:['biped','quad']},
+ biped:{name:'Bipedal Stalker',hp:145,speed:190,damage:43,stamina:120,ability:'Passo silencioso',desc:'Forma humanoide alta. Observa a presa e acelera em ataques de emboscada.',next:['tormentor','influence']},
+ quad:{name:'Quadrupedal Stalker',hp:165,speed:225,damage:48,stamina:130,ability:'Investida predatória',desc:'Quatro apoios, aceleração brutal e perseguição persistente.',next:['tormentor','despair']},
+ tormentor:{name:'Tormentor',hp:260,speed:205,damage:72,stamina:160,ability:'Frenesi',desc:'Uma forma de violência extrema. Aguenta muito dano e ataca sem hesitação.',next:['anguish','influence']},
+ despair:{name:'Despair Culler',hp:190,speed:165,damage:58,stamina:150,ability:'Pressão psíquica',desc:'Uma presença que detecta vítimas vulneráveis e as desorienta.',next:['anguish','influence']},
+ influence:{name:'Entity of Influence',hp:320,speed:145,damage:60,stamina:180,ability:'Influência',desc:'Entidade raríssima. Amplifica o caos ao redor e altera o comportamento de outras criaturas.',next:['anguish']},
+ anguish:{name:'Anguish',hp:380,speed:185,damage:90,stamina:200,ability:'Olhar do abismo',desc:'Uma forma final de ameaça. Sua presença provoca pânico e abre caminho através da cidade.',next:[]},
+ original:{name:'Rastejante de Breu',hp:130,speed:175,damage:38,stamina:115,ability:'Camuflagem',desc:'Uma mutação original: corpo baixo que se mistura às sombras e ataca de surpresa.',next:['biped','quad']},
+ marrow:{name:'Devorador Ósseo',hp:230,speed:170,damage:66,stamina:150,ability:'Ruptura',desc:'Uma mutação original blindada, capaz de romper bloqueios e resistir a disparos.',next:['tormentor','anguish']}
+};
+const player={x:WORLD_W/2,y:WORLD_H/2,vx:0,vy:0,r:13,hp:100,maxHp:100,hunger:100,essence:0,level:0,species:'larva',stamina:100,attackCd:0,abilityCd:0,invuln:0,facing:0,camouflage:0};
+function resize(){dpr=Math.min(devicePixelRatio||1,2);W=innerWidth;H=innerHeight;canvas.width=Math.floor(W*dpr);canvas.height=Math.floor(H*dpr);canvas.style.width=W+'px';canvas.style.height=H+'px';ctx.setTransform(dpr,0,0,dpr,0,0)}
+addEventListener('resize',resize);resize();
+function makeCity(){
+ buildings=[];lamps=[];
+ for(let y=130;y<WORLD_H-100;y+=260)for(let x=130;x<WORLD_W-100;x+=290){
+  if(Math.random()<.13)continue;
+  const w=rand(105,165),h=rand(105,165);
+  buildings.push({x:x+rand(-25,25),y:y+rand(-25,25),w,h,shade:Math.floor(rand(23,39)),roof:Math.random()});
+ }
+ for(let x=80;x<WORLD_W;x+=170)for(let y=80;y<WORLD_H;y+=170)if(Math.random()<.72)lamps.push({x:x+rand(-35,35),y:y+rand(-35,35),on:Math.random()<.38});
+}
+function spawnHuman(x,y){
+ const names=['Morador','Entregador','Vigilante','Estudante','Enfermeira','Policial fora de serviço'];
+ humans.push({x:x??rand(90,WORLD_W-90),y:y??rand(90,WORLD_H-90),vx:0,vy:0,r:7,hp:1,state:'walk',fear:0,call:0,hide:0,alive:true,name:names[Math.floor(Math.random()*names.length)],seed:Math.random()*10});
+}
+function reset(){
+ killCount=0;alert=0;elapsed=0;spawnClock=0;humans=[];police=[];particles=[];player.x=WORLD_W/2;player.y=WORLD_H/2;player.hp=100;player.maxHp=100;player.hunger=100;player.essence=0;player.level=0;player.species='larva';player.stamina=100;player.attackCd=0;player.abilityCd=0;player.invuln=0;player.camouflage=0;
+ for(let i=0;i<28;i++)spawnHuman();updateHud();$('species').textContent=evolution.larva.name;
+}
+function notify(msg){const el=$('toast');el.textContent=msg;el.classList.add('show');toastTimer=2.3}
+function addParticles(x,y,color,n=8){for(let i=0;i<n;i++){const a=rand(0,Math.PI*2),s=rand(20,100);particles.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,life:rand(.25,.7),max:.7,color,r:rand(1,3)})}}
+function blocked(x,y,r){
+ if(x<r||y<r||x>WORLD_W-r||y>WORLD_H-r)return true;
+ return buildings.some(b=>x+r>b.x&&x-r<b.x+b.w&&y+r>b.y&&y-r<b.y+b.h);
+}
+function moveEntity(e,dx,dy,r){
+ let nx=e.x+dx;if(!blocked(nx,e.y,r))e.x=nx;
+ let ny=e.y+dy;if(!blocked(e.x,ny,r))e.y=ny;
+}
+function getStats(){return evolution[player.species]}
+function attack(){
+ if(player.attackCd>0)return;
+ const s=getStats();player.attackCd=player.species==='quad'?.36:.55;
+ const range=player.species==='tormentor'?76:player.species==='quad'?66:54;
+ let target=null,best=range;
+ for(const h of humans){if(!h.alive)continue;const d=dist(player,h);if(d<best){best=d;target=h}}
+ if(target){
+  target.alive=false;killCount++;player.essence+=1;player.hunger=clamp(player.hunger+18,0,100);player.hp=clamp(player.hp+8,0,player.maxHp);alert=clamp(alert+1,0,10);
+  addParticles(target.x,target.y,'#87353d',14);notify('PRESA CONSUMIDA  //  +1 ESSÊNCIA');
+  if(killCount%3===0)spawnPolice();
+  checkEvolution();
+ }else addParticles(player.x+Math.cos(player.facing)*range*.65,player.y+Math.sin(player.facing)*range*.65,'#7e333a',3);
+}
+function spawnPolice(){for(let i=0;i<2+Math.floor(alert/3);i++){const a=rand(0,Math.PI*2);police.push({x:clamp(player.x+Math.cos(a)*rand(300,450),30,WORLD_W-30),y:clamp(player.y+Math.sin(a)*rand(300,450),30,WORLD_H-30),hp:3,cd:rand(.5,1.8),r:8})}notify('RÁDIO POLICIAL DETECTADO')}
+function checkEvolution(){
+ const thresholds=[3,7,12,18,26,36];
+ if(player.level<thresholds.length&&killCount>=thresholds[player.level])showEvolution();
+}
+function showEvolution(){
+ const s=getStats();const choices=s.next.map(id=>({id,...evolution[id]}));
+ if(player.level===0)choices.push({id:'original',...evolution.original});
+ if(player.level===1)choices.push({id:'marrow',...evolution.marrow});
+ if(!choices.length){notify('FORMA FINAL ALCANÇADA');return}
+ evolving=true;active=false;$('evolution').style.display='flex';$('evoIntro').textContent='Você acumulou biomassa suficiente. Escolha uma mutação. Sua forma atual será substituída.';
+ const grid=$('evoGrid');grid.innerHTML='';
+ for(const c of choices){const card=document.createElement('button');card.className='evo-card';card.innerHTML='<div class="tag">MUTAÇÃO DISPONÍVEL</div><h3>'+c.name+'</h3><p>'+c.desc+'</p><p style="margin-top:9px;color:#d1a1a4">Habilidade: '+c.ability+'</p>';card.addEventListener('click',()=>evolve(c.id));grid.appendChild(card)}
+}
+function evolve(id){
+ player.species=id;player.level++;const s=getStats();player.maxHp=s.hp;player.hp=s.hp;player.stamina=s.stamina;player.essence=0;
+ $('evolution').style.display='none';evolving=false;active=true;$('species').textContent=s.name;$('ability').textContent='Q — '+s.ability.toUpperCase();notify('MUTAÇÃO CONCLUÍDA  //  '+s.name.toUpperCase());updateHud();
+}
+function useAbility(){
+ if(player.abilityCd>0)return;player.abilityCd=12;
+ const id=player.species;
+ if(id==='larva'||id==='original'||id==='biped'){player.camouflage=4;player.stamina=100;notify('CAMUFLAGEM ATIVADA')}
+ else if(id==='quad'){const s=getStats();const dx=Math.cos(player.facing),dy=Math.sin(player.facing);for(let i=0;i<8;i++)moveEntity(player,dx*14,dy*14,player.r);addParticles(player.x,player.y,'#a64a50',14);const h=humans.find(h=>h.alive&&dist(h,player)<85);if(h){h.alive=false;killCount++;player.essence++;player.hunger=100;checkEvolution()}notify('INVESTIDA PREDATÓRIA')}
+ else if(id==='tormentor'||id==='marrow'){for(const h of humans){if(h.alive&&dist(h,player)<125){h.alive=false;killCount++;player.essence++;player.hunger=100;addParticles(h.x,h.y,'#9b343c',10)}}checkEvolution();player.invuln=2;notify('FRENESI DESTRUTIVO')}
+ else if(id==='despair'){for(const h of humans){if(dist(h,player)<260){h.fear=10;h.state='panic'}}notify('PÂNICO PSÍQUICO')}
+ else if(id==='influence'){alert=10;for(const h of humans){if(dist(h,player)<400){h.fear=12;h.state='panic'}}notify('A CIDADE INTEIRA SENTE SUA PRESENÇA')}
+ else if(id==='anguish'){for(const h of humans){if(dist(h,player)<210){h.alive=false;killCount++;player.essence++;addParticles(h.x,h.y,'#a33b42',10)}}checkEvolution();player.invuln=3;notify('OLHAR DO ABISMO')}
+}
+function update(dt){
+ elapsed+=dt;player.attackCd=Math.max(0,player.attackCd-dt);player.abilityCd=Math.max(0,player.abilityCd-dt);player.invuln=Math.max(0,player.invuln-dt);player.camouflage=Math.max(0,player.camouflage-dt);
+ const s=getStats();let dx=(keys.has('d')||keys.has('arrowright')?1:0)-(keys.has('a')||keys.has('arrowleft')?1:0),dy=(keys.has('s')||keys.has('arrowdown')?1:0)-(keys.has('w')||keys.has('arrowup')?1:0);
+ const len=Math.hypot(dx,dy)||1;dx/=len;dy/=len;
+ const sprint=keys.has('shift')&&player.stamina>1&&Math.hypot(dx,dy)>.1;const speed=s.speed*(sprint?1.55:1);
+ if(sprint)player.stamina=Math.max(0,player.stamina-28*dt);else player.stamina=Math.min(s.stamina,player.stamina+18*dt);
+ if(dx||dy){player.facing=Math.atan2(dy,dx);moveEntity(player,dx*speed*dt,dy*speed*dt,player.r)}
+ player.hunger=Math.max(0,player.hunger-dt*.65);if(player.hunger<=0)player.hp=Math.max(0,player.hp-dt*3);
+ if(player.hp<=0){active=false;paused=true;$('pause').style.display='flex';$('pause').querySelector('h2').textContent='VOCÊ FOI CONTIDO';$('pause').querySelector('.story').textContent='A cidade sobreviveu por enquanto. Recomece para tentar outra evolução.'}
+ const danger=player.camouflage>0?0:1;
+ for(const h of humans){if(!h.alive)continue;const d=dist(h,player);h.fear=Math.max(0,h.fear-dt*.5);
+  if(d<300&&danger){h.fear=Math.max(h.fear,clamp((300-d)/30,0,10));h.state='panic'}
+  if(h.state==='panic'){
+   const a=Math.atan2(h.y-player.y,h.x-player.x);h.vx=Math.cos(a)*105;h.vy=Math.sin(a)*105;h.call+=dt;
+   if(h.call>3.8&&d<380){h.call=-100;alert=clamp(alert+.35,0,10);if(Math.random()<.35)spawnPolice()}
+   if(h.fear<1)h.state='walk';
+  }else{
+   h.seed+=dt;if(Math.random()<dt*.15){h.vx=rand(-30,30);h.vy=rand(-30,30)}
+  }
+  moveEntity(h,h.vx*dt,h.vy*dt,h.r);
+ }
+ spawnClock+=dt;if(spawnClock>7&&humans.filter(h=>h.alive).length<32){spawnHuman();spawnClock=0}
+ for(const p of police){
+  p.cd-=dt;const a=Math.atan2(player.y-p.y,player.x-p.x);moveEntity(p,Math.cos(a)*90*dt,Math.sin(a)*90*dt,p.r);
+  if(p.cd<=0&&dist(p,player)<330){p.cd=1.3; if(player.invuln<=0&&player.camouflage<=0){player.hp=Math.max(0,player.hp-7);addParticles(player.x,player.y,'#b6b7b9',4)}}
+ }
+ for(let i=police.length-1;i>=0;i--)if(dist(police[i],player)<26&&player.species==='tormentor')police.splice(i,1);
+ for(const p of particles){p.x+=p.vx*dt;p.y+=p.vy*dt;p.life-=dt;p.vx*=.96;p.vy*=.96}
+ particles=particles.filter(p=>p.life>0);
+ camera.x=clamp(player.x-W/2,0,WORLD_W-W);camera.y=clamp(player.y-H/2,0,WORLD_H-H);
+ updateHud();
+}
+function updateHud(){
+ const s=getStats();$('hp').style.width=(player.hp/player.maxHp*100)+'%';$('hpText').textContent=Math.ceil(player.hp)+' / '+player.maxHp;
+ const next=[3,7,12,18,26,36][player.level]||Infinity;$('xp').style.width=(player.essence/Math.max(1,next-killCount+player.essence)*100)+'%';$('xpText').textContent=player.essence+' ESSÊNCIA';
+ $('hunger').style.width=player.hunger+'%';$('hungerText').textContent=Math.ceil(player.hunger)+'%';$('killCount').innerHTML=killCount+' <small>/ HUMANOS</small>';
+ $('alertText').textContent=alert>7?'ALERTA MÁXIMO':alert>3?'PATRULHAS ATIVAS':'SEM ALERTA';
+ $('objectiveText').textContent=player.level>=6?'SOBREVIVA À SUA PRÓPRIA LENDA':'CAÇE '+([3,7,12,18,26,36][player.level]||'')+' PARA EVOLUIR';
+ $('ability').textContent='Q — '+s.ability.toUpperCase()+'  '+(player.abilityCd>0?'('+player.abilityCd.toFixed(1)+'s)':'');
+}
+function draw(){
+ ctx.clearRect(0,0,W,H);ctx.save();ctx.translate(-camera.x,-camera.y);
+ ctx.fillStyle='#20272a';ctx.fillRect(0,0,WORLD_W,WORLD_H);
+ // city blocks and road grid
+ ctx.fillStyle='#34383a';for(let x=0;x<WORLD_W;x+=290)ctx.fillRect(x-28,0,56,WORLD_H);for(let y=0;y<WORLD_H;y+=260)ctx.fillRect(0,y-28,WORLD_W,56);
+ ctx.strokeStyle='#555451';ctx.lineWidth=1;ctx.setLineDash([18,22]);for(let x=0;x<WORLD_W;x+=290){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,WORLD_H);ctx.stroke()}for(let y=0;y<WORLD_H;y+=260){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(WORLD_W,y);ctx.stroke()}ctx.setLineDash([]);
+ for(const b of buildings){ctx.fillStyle='#171c20';ctx.fillRect(b.x+7,b.y+9,b.w,b.h);ctx.fillStyle='rgb('+b.shade+','+(b.shade+3)+','+(b.shade+5)+')';ctx.fillRect(b.x,b.y,b.w,b.h);ctx.fillStyle='#44484a';ctx.fillRect(b.x+7,b.y+7,b.w-14,4);ctx.fillStyle='#252c30';for(let x=b.x+14;x<b.x+b.w-8;x+=24)for(let y=b.y+18;y<b.y+b.h-8;y+=25){ctx.fillRect(x,y,8,7)}ctx.fillStyle='#111619';ctx.fillRect(b.x+b.w*.4,b.y+b.h*.42,18,18)}
+ for(const l of lamps){ctx.fillStyle='#101315';ctx.fillRect(l.x-2,l.y-2,4,10);ctx.fillStyle=l.on?'#c4a66b':'#45494b';ctx.beginPath();ctx.arc(l.x,l.y-4,4,0,Math.PI*2);ctx.fill();if(l.on){const g=ctx.createRadialGradient(l.x,l.y,0,l.x,l.y,60);g.addColorStop(0,'rgba(207,172,102,.11)');g.addColorStop(1,'rgba(207,172,102,0)');ctx.fillStyle=g;ctx.beginPath();ctx.arc(l.x,l.y,60,0,Math.PI*2);ctx.fill()}}
+ for(const h of humans){if(!h.alive)continue;ctx.fillStyle=h.state==='panic'?'#b8a7a0':'#8e9694';ctx.beginPath();ctx.arc(h.x,h.y,h.r,0,Math.PI*2);ctx.fill();ctx.fillStyle='#24292b';ctx.fillRect(h.x-3,h.y+5,6,7);if(h.fear>3){ctx.strokeStyle='#a54b51';ctx.beginPath();ctx.arc(h.x,h.y,11,0,Math.PI*2);ctx.stroke()}}
+ for(const p of police){ctx.fillStyle='#344c65';ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fill();ctx.fillStyle='#a9b8c4';ctx.fillRect(p.x-3,p.y-3,6,6)}
+ for(const p of particles){ctx.globalAlpha=clamp(p.life/p.max,0,1);ctx.fillStyle=p.color;ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fill()}ctx.globalAlpha=1;
+ drawPlayer();
+ ctx.restore();
+ // local darkness and red peripheral vision
+ const grd=ctx.createRadialGradient(W/2,H/2,Math.min(W,H)*.1,W/2,H/2,Math.max(W,H)*.72);grd.addColorStop(0,'rgba(0,0,0,0)');grd.addColorStop(1,'rgba(0,0,0,.56)');ctx.fillStyle=grd;ctx.fillRect(0,0,W,H);
+}
+function drawPlayer(){
+ const s=player.species;ctx.save();ctx.translate(player.x,player.y);ctx.rotate(player.facing);
+ if(player.camouflage>0)ctx.globalAlpha=.42;
+ const size=s==='anguish'||s==='influence'?20:s==='tormentor'||s==='marrow'?17:s==='quad'?15:12;
+ ctx.fillStyle=s==='anguish'?'#762c32':s==='influence'?'#b9b9b3':'#08090a';
+ ctx.beginPath();
+ if(s==='quad'){ctx.ellipse(0,0,size*1.2,size*.7,0,0,Math.PI*2);ctx.fill();for(let i=-1;i<=1;i+=2){ctx.fillRect(-size*.6,i*size*.6,size*1.1,5)}}
+ else{ctx.ellipse(0,0,size*.8,size*1.1,0,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.ellipse(size*.7,0,size*.5,size*.55,0,0,Math.PI*2);ctx.fill()}
+ ctx.fillStyle=s==='anguish'?'#d64b4e':s==='influence'?'#242326':'#b4a7a0';ctx.beginPath();ctx.ellipse(size*.75,0,size*.35,size*.3,0,0,Math.PI*2);ctx.fill();
+ ctx.fillStyle='#09090a';ctx.fillRect(size*.72,-size*.17,3,3);ctx.fillRect(size*.72,size*.07,3,3);
+ if(s==='tormentor'||s==='anguish'){ctx.strokeStyle='#b54a4e';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(0,-size*.6);ctx.lineTo(-size*.5,-size*1.2);ctx.moveTo(0,size*.6);ctx.lineTo(-size*.5,size*1.2);ctx.stroke()}
+ ctx.restore();
+}
+function frame(t){const dt=Math.min((t-last)/1000||0,.033);last=t;if(active&&!paused&&!evolving)update(dt);draw();if(toastTimer>0){toastTimer-=dt;if(toastTimer<=0)$('toast').classList.remove('show')}requestAnimationFrame(frame)}
+function start(){reset();makeCity();$('start').style.display='none';$('hud').style.display='block';active=true;paused=false;$('pause').style.display='none';last=performance.now()}
+function pause(){if(!active&&!paused)return;active=false;paused=true;$('pause').style.display='flex'}
+function resume(){if(player.hp<=0){start();return}paused=false;active=true;$('pause').style.display='none';last=performance.now()}
+$('startBtn').addEventListener('click',start);$('resumeBtn').addEventListener('click',resume);$('restartBtn').addEventListener('click',start);
+addEventListener('keydown',e=>{const k=e.key.toLowerCase();if(['arrowup','arrowdown','arrowleft','arrowright',' '].includes(k))e.preventDefault();keys.add(k);if(k===' '&&active)attack();if(k==='q'&&active)useAbility();if(k==='escape'){if(active)pause();else if(paused)resume()}});
+addEventListener('keyup',e=>keys.delete(e.key.toLowerCase()));
+canvas.addEventListener('pointerdown',()=>{if(active)attack()});
+makeCity();reset();requestAnimationFrame(frame);
+})();
+</script>
+</body></html>
